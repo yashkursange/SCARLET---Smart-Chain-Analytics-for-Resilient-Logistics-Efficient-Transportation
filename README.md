@@ -2,7 +2,7 @@
 
 **Smart Supply Chain Analytics for Resilience & Logistics**
 
-A final-year research project building an AI-driven Supply Chain Digital Twin.
+A research project building an AI-driven Supply Chain Digital Twin.
 
 ---
 
