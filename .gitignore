@@ -1,0 +1,46 @@
+# ─── Environment secrets ───────────────────────────────────────────────────────
+.env
+*.env.local
+
+# ─── Node / npm ────────────────────────────────────────────────────────────────
+node_modules/
+dist/
+build/
+.npm
+npm-debug.log*
+yarn-error.log*
+
+# ─── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+.pytest_cache/
+.mypy_cache/
+
+# ─── Editor ────────────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# ─── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Data (large files go in external storage) ─────────────────────────────────
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/synthetic/.gitkeep
+
+# ─── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
