@@ -29,10 +29,12 @@ Node / Express API  (port 4000)
       │  HTTP / JSON
       ├─────────────────────────────────────────┐
       ▼                                         ▼
-PostgreSQL  (port 5432)           Python FastAPI ML Service  (port 8000)
+PostgreSQL  (port 5432)  <────>  Python FastAPI ML Service  (port 8000)
                                         │
-                                  Scikit-learn / XGBoost
-                                  SimPy / NetworkX / OR-Tools
+                                  Trained demand model
+                                  (XGBoost, exported from the notebook)
+                                        │
+                                  SimPy / NetworkX / OR-Tools  (Phase 4+)
 ```
 
 **Key design rules:**
@@ -49,7 +51,13 @@ SCARLET/
 ├── frontend/        React + Vite + Tailwind dashboard
 ├── backend/         Node.js + Express API
 ├── ml-service/      Python FastAPI AI/ML service
+│   ├── app/         FastAPI app: routes, model loader, feature engineering
+│   ├── models/
+│   │   └── demand/  Trained demand-model artifacts (from the notebook)
+│   └── scripts/     Demo data seeding
 ├── database/        SQL schema and migration scripts
+│   ├── init.sql
+│   └── migrations/  Incremental schema changes
 ├── data/
 │   ├── raw/         Original, unmodified source data
 │   ├── processed/   Cleaned and transformed data
@@ -106,6 +114,9 @@ psql -U postgres -c "CREATE DATABASE scarlet;"
 psql -U postgres -c "CREATE USER scarlet_user WITH ENCRYPTED PASSWORD 'your_password';"
 psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE scarlet TO scarlet_user;"
 psql -U scarlet_user -d scarlet -f database/init.sql
+
+# Apply migrations (adds demand-model mapping columns + demand_forecasts table)
+psql -U scarlet_user -d scarlet -f database/migrations/002_ml_demand_forecasting.sql
 ```
 
 ### 3 — Start the Express backend
@@ -129,7 +140,14 @@ pip install -r requirements.txt
 cp ../.env.example .env     # edit with your values
 uvicorn app.main:app --reload --port 8000
 # → http://localhost:8000/health
+
+# Optional: seed real demo data so forecasting can be exercised end-to-end
+python scripts/seed_demo_data.py
 ```
+
+The trained demand model is loaded once at startup from
+`ml-service/models/demand/`. If those artifacts are missing, `/health` reports
+`demand_model.status = "not_loaded"` rather than falsely reporting healthy.
 
 ### 5 — Start the React frontend
 
@@ -147,8 +165,14 @@ npm run dev
 # Backend tests
 cd backend && npm test
 
-# ML service tests
+# ML service tests (27 tests)
 cd ml-service && pytest
+
+# End-to-end UI test — drives the real React app in a headless browser and
+# asserts the displayed numbers match the trained model's own output.
+# Requires all four services running plus the demo seed data.
+pip install playwright && python -m playwright install chromium
+python tests/e2e_ui_test.py <product_id> <market_id>
 ```
 
 ---
@@ -176,7 +200,20 @@ See [`.env.example`](.env.example) for the full variable reference.
 | Endpoint | Service | Expected response |
 |---|---|---|
 | `GET /api/health` | Express | `{ status: "ok", database: "connected" \| "error" }` |
-| `GET /health` | FastAPI | `{ status: "ok", service: "ml-service" }` |
+| `GET /api/health/ml` | Express → FastAPI | ML service + demand-model status (proxied) |
+| `GET /health` | FastAPI | `{ status, service, database, demand_model: { status, name, version } }` |
+
+### Demand forecasting endpoints
+
+| Endpoint | Service | Purpose |
+|---|---|---|
+| `POST /api/forecast/demand` | Express → FastAPI | Demand forecast from the trained model |
+| `POST /api/forecast/inventory-projection` | Express → FastAPI | Forecast-driven inventory projection + stockout risk |
+
+Request body: `{ "product_id": "<uuid>", "market_id": "<uuid>", "horizon": 7 }`
+
+See [`ml-service/README.md`](ml-service/README.md) for the model details, the
+full error-code table, and the service's known limitations.
 
 ---
 
@@ -186,7 +223,7 @@ See [`.env.example`](.env.example) for the full variable reference.
 |---|---|---|
 | **1** | Foundation — repo, services, health checks, DB connectivity | ✅ Current |
 | 2 | Synthetic data generation, DB schema, REST API scaffolding | ⬜ |
-| 3 | ML models — demand forecasting, disruption prediction | ⬜ |
+| 3 | ML models — demand forecasting ✅, disruption prediction ⬜ | 🟨 Partial |
 | 4 | Digital Twin simulation (SimPy + NetworkX) | ⬜ |
 | 5 | Optimisation (OR-Tools) + advanced dashboard | ⬜ |
 

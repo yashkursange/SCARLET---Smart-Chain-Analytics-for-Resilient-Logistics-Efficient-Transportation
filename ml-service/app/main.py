@@ -1,38 +1,46 @@
 """
-app/main.py — FastAPI application entry point
+main.py — FastAPI application entry point for the SCARLET ML service.
 
-Architecture note:
-    The ML service is a separate process from the Node/Express backend.
-    Express will call this service for ML inference and simulation tasks
-    (Phase 2+).  In Phase 1 it exposes only a health-check endpoint.
+Run with:  uvicorn app.main:app --reload --port 8000   (from the ml-service/ directory)
 """
+import logging
 
-import os
-from dotenv import load_dotenv
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import health
+from app import config
+from app.models.loader import load_demand_model
+from app.routes import health as health_routes
+from app.routes import demand as demand_routes
+from app.routes import inventory as inventory_routes
 
-# Load environment variables from .env (if present).
-# In production these come from the environment directly.
-load_dotenv()
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s %(message)s")
+logger = logging.getLogger("scarlet.ml.main")
 
-app = FastAPI(
-    title="SCARLET ML Service",
-    description="AI / ML / Simulation service for the SCARLET Supply Chain Digital Twin",
-    version="0.1.0",
-)
 
-# ── CORS ─────────────────────────────────────────────────────────────────────
-# In Phase 1 the Express backend calls this service, so we allow all origins
-# for development convenience.  Restrict to the Express URL in production.
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Model loader: load once at startup, never per-request (see app/models/loader.py).
+    artifacts = load_demand_model()
+    if artifacts.loaded:
+        logger.info("Startup complete — demand model %s v%s ready.",
+                     artifacts.model_name, artifacts.model_version)
+    else:
+        logger.error("Startup complete — demand model FAILED to load: %s", artifacts.error)
+    yield
+
+
+app = FastAPI(title="SCARLET ML Service", version="1.0.0", lifespan=lifespan)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[config.FRONTEND_URL] if config.FRONTEND_URL != "*" else ["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ── Routers ──────────────────────────────────────────────────────────────────
-app.include_router(health.router)
+app.include_router(health_routes.router)
+app.include_router(demand_routes.router, prefix="/api/ml/demand")
+app.include_router(inventory_routes.router, prefix="/api/ml/inventory")

@@ -44,3 +44,12 @@ data/processed/*
 # ─── Logs ──────────────────────────────────────────────────────────────────────
 *.log
 logs/
+
+# ─── ML service ────────────────────────────────────────────────────────────────
+# Trained demand-model artifacts ARE committed — they are the deployable model
+# exported by SCARLET_Demand_Forecasting.ipynb and are required at runtime.
+!ml-service/models/demand/*.pkl
+!ml-service/models/demand/*.json
+
+# End-to-end test output
+e2e_forecast_screenshot.png
