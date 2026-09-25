@@ -79,3 +79,20 @@ Phase 1 establishes only:
 - This documentation
 
 **Not in Phase 1:** ML models, simulation, optimisation, auth, Docker, WebSockets.
+
+---
+
+## Update — Demand Forecasting Integration
+
+The demand-forecasting model is now integrated and serving real predictions.
+This changes two Phase 1 statements above:
+
+1. **React no longer calls FastAPI directly.** ML-service status is proxied
+   through Express at `GET /api/health/ml`, so React only ever talks to Express.
+2. **The ML service is no longer health-check only.** It loads the trained model
+   at startup and serves `/api/ml/demand/forecast` and
+   `/api/ml/inventory/projection`.
+
+See [`demand-forecasting-integration.md`](demand-forecasting-integration.md) for
+the full request flow, inference-correctness rules, schema changes, and the
+honestly-documented gaps (no Digital Twin exists yet in the codebase).

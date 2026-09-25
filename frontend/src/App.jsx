@@ -15,12 +15,14 @@ import { fetchBackendHealth, fetchMlServiceHealth } from './api/health'
 import StatusCard from './components/StatusCard'
 
 const POLL_INTERVAL_MS = 30_000
+import DemandForecast from './pages/DemandForecast'
 
 export default function App() {
   // ── State ─────────────────────────────────────────────────────────────────
   const [backendStatus,  setBackendStatus]  = useState('loading')
   const [databaseStatus, setDatabaseStatus] = useState('loading')
   const [mlStatus,       setMlStatus]       = useState('loading')
+  const [modelStatus,    setModelStatus]    = useState(null)
   const [lastChecked,    setLastChecked]     = useState(null)
 
   // ── Data fetching ─────────────────────────────────────────────────────────
@@ -39,8 +41,10 @@ export default function App() {
     try {
       const mlData = await fetchMlServiceHealth()
       setMlStatus(mlData.status === 'ok' ? 'ok' : 'error')
+      setModelStatus(mlData.demand_model ?? null)
     } catch {
       setMlStatus('error')
+      setModelStatus(null)
     }
 
     setLastChecked(new Date())
@@ -112,7 +116,13 @@ export default function App() {
               id="status-ml-service"
               title="Python ML Service"
               status={mlStatus}
-              detail={mlStatus === 'loading' ? undefined : `http://localhost:8000/health`}
+              detail={
+                mlStatus === 'loading'
+                  ? undefined
+                  : modelStatus
+                    ? `Demand model: ${modelStatus.status}${modelStatus.name ? ` (${modelStatus.name} v${modelStatus.version})` : ''}`
+                    : 'http://localhost:8000/health'
+              }
             />
           </div>
         </section>
@@ -128,10 +138,15 @@ export default function App() {
         <button
           id="btn-refresh"
           onClick={checkHealth}
-          className="mt-4 text-xs text-slate-500 hover:text-red-400 transition-colors underline underline-offset-2"
+          className="mt-4 text-xs text-slate-500 hover:text-red-400 transition-colors underline underline-offset-2 mb-16"
         >
           Refresh now
         </button>
+
+        {/* ── Demand Forecast Section ── */}
+        <section aria-label="Demand Forecasting" className="border-t border-slate-800/70 pt-16 mt-8">
+            <DemandForecast />
+        </section>
       </main>
     </div>
   )

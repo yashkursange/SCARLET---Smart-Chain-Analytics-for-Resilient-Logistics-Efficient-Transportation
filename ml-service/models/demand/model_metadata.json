@@ -1,0 +1,27 @@
+{
+  "model_type": "XGBRegressor",
+  "model_version": "scarlet-demand-v1.0",
+  "selected_model": "XGBoost (tuned)",
+  "hyperparameters": {
+    "n_estimators": 303,
+    "max_depth": 7,
+    "learning_rate": 0.05397495836474436,
+    "subsample": 0.9515467166993486,
+    "colsample_bytree": 0.7038900040138802,
+    "min_child_weight": 16,
+    "reg_alpha": 0.5197842907314976,
+    "reg_lambda": 0.0071199733938512675
+  },
+  "training_rows": 2254569,
+  "n_sampled_series": 1520,
+  "sample_frac_of_full_m5": 0.05,
+  "library_versions": {
+    "sklearn": "1.8.0",
+    "xgboost": "3.4.1",
+    "lightgbm": "4.7.0"
+  },
+  "forecast_horizon_days": 28,
+  "forecasting_approach": "lag/rolling-feature regression; evaluated as a daily one-step rolling forecast (primary) and a recursive multi-step forecast (secondary)",
+  "categorical_encoding": "integer label-encoding, mapping stored in cat_code_maps.json",
+  "random_seed": 42
+}

@@ -21,7 +21,7 @@ async def test_health_returns_ok():
     assert response.status_code == 200
     body = response.json()
     assert body["status"]  == "ok"
-    assert body["service"] == "scarlet-ml-service"
+    assert body["service"] == "ml-service"
     assert "timestamp" in body
 
 

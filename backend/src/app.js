@@ -26,6 +26,8 @@ app.use(express.json());
 //   All API routes are prefixed with /api so they are clearly distinguished
 //   from any future static-file serving or proxy paths.
 app.use('/api/health', healthRouter);
+const forecastRouter = require('./routes/forecast');
+app.use('/api/forecast', forecastRouter);
 
 // 404 catch-all for undefined routes.
 app.use((req, res) => {

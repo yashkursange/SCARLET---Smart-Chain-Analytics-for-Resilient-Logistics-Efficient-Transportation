@@ -2,20 +2,15 @@
  * api/health.js — HTTP helpers for health-check endpoints
  *
  * Architecture note:
- *   React calls Express at VITE_API_URL — never PostgreSQL directly.
- *   The ML service URL is called directly in Phase 1 only for dashboard
- *   status visibility; in production all ML calls should be proxied via Express.
+ *   React calls Express at VITE_API_URL — never PostgreSQL, and never the
+ *   Python ML service, directly. ML-service status is proxied through
+ *   Express at /api/health/ml.
  */
 
 import axios from 'axios'
 
 const expressClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
-  timeout: 5000,
-})
-
-const mlClient = axios.create({
-  baseURL: import.meta.env.VITE_ML_SERVICE_URL,
   timeout: 5000,
 })
 
@@ -29,10 +24,13 @@ export async function fetchBackendHealth() {
 }
 
 /**
- * Fetch the Python FastAPI ML service health status.
- * @returns {{ status: string, service: string, timestamp: string }}
+ * Fetch the Python FastAPI ML service health status (proxied via Express).
+ * @returns {{ status: string, service: string, database: string,
+ *             demand_model: { status: string, name: string|null,
+ *                             version: string|null, error: string|null },
+ *             timestamp: string }}
  */
 export async function fetchMlServiceHealth() {
-  const { data } = await mlClient.get('/health')
+  const { data } = await expressClient.get('/api/health/ml')
   return data
 }

@@ -9,15 +9,22 @@ GET /health
 
 from fastapi import APIRouter
 from datetime import datetime, timezone
+from app.demand_forecasting.model_loader import model_loader
 
 router = APIRouter()
 
 
 @router.get("/health")
 async def health_check() -> dict:
-    """Return service status and current UTC timestamp."""
+    """Return service status including demand model loading state."""
+    meta = model_loader.model_metadata or {}
     return {
-        "status":    "ok",
-        "service":   "scarlet-ml-service",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "status":        "ok",
+        "service":       "scarlet-ml-service",
+        "timestamp":     datetime.now(timezone.utc).isoformat(),
+        "demand_model": {
+            "loaded":  model_loader.is_loaded,
+            "version": meta.get("model_version", "not loaded"),
+            "type":    meta.get("model_type", "unknown"),
+        },
     }
